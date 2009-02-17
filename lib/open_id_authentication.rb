@@ -74,20 +74,18 @@ module OpenIdAuthentication
   end
 
   # normalizes an OpenID according to http://openid.net/specs/openid-authentication-2_0.html#normalization
-  def self.normalize_identifier(identifier)
+  def self.normalize_identifier(identifier, include_fragment = false)
     # clean up whitespace
     identifier = identifier.to_s.strip
 
-    # if an XRI has a prefix, strip it.
-    identifier.gsub!(/xri:\/\//i, '')
-
-    # dodge XRIs -- TODO: validate, don't just skip.
-    unless ['=', '@', '+', '$', '!', '('].include?(identifier.at(0))
-      # does it begin with http?  if not, add it.
+    case OpenID::Yadis::XRI.identifier_scheme(identifier)
+    when :xri
+      identifier.gsub!(/xri:\/\//i, '')
+    else
       identifier = "http://#{identifier}" unless identifier =~ /^http/i
 
       # strip any fragments
-      identifier.gsub!(/\#(.*)$/, '')
+      identifier.gsub!(/\#(.*)$/, '') unless include_fragment
 
       begin
         uri = URI.parse(identifier)
@@ -112,8 +110,8 @@ module OpenIdAuthentication
       OpenIdAuthentication.normalize_url(url)
     end
 
-    def normalize_identifier(url)
-      OpenIdAuthentication.normalize_identifier(url)
+    def normalize_identifier(url, include_fragment = false)
+      OpenIdAuthentication.normalize_identifier(url, include_fragment)
     end
 
     # The parameter name of "openid_identifier" is used rather than the Rails convention "open_id_identifier"
@@ -157,7 +155,12 @@ module OpenIdAuthentication
       params_with_path = params.reject { |key, value| request.path_parameters[key] }
       params_with_path.delete(:format)
       open_id_response = timeout_protection_from_identity_server { open_id_consumer.complete(params_with_path, requested_url) }
-      identity_url     = normalize_identifier(open_id_response.display_identifier) if open_id_response.display_identifier
+
+      if open_id_response.identity_url
+        identity_url = normalize_identifier(open_id_response.identity_url, :include_fragment)
+      elsif open_id_response.display_identifier
+        identity_url = normalize_identifier(open_id_response.display_identifier, :include_fragment)
+      end
 
       case open_id_response.status
       when OpenID::Consumer::SUCCESS

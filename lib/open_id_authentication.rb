@@ -74,7 +74,7 @@ module OpenIdAuthentication
   end
 
   # normalizes an OpenID according to http://openid.net/specs/openid-authentication-2_0.html#normalization
-  def self.normalize_identifier(identifier, include_fragment = false)
+  def self.normalize_identifier(identifier)
     # clean up whitespace
     identifier = identifier.to_s.strip
 
@@ -85,7 +85,7 @@ module OpenIdAuthentication
       identifier = "http://#{identifier}" unless identifier =~ /^http/i
 
       # strip any fragments
-      identifier.gsub!(/\#(.*)$/, '') unless include_fragment
+      identifier.gsub!(/\#(.*)$/, '')
 
       begin
         uri = URI.parse(identifier)
@@ -110,8 +110,8 @@ module OpenIdAuthentication
       OpenIdAuthentication.normalize_url(url)
     end
 
-    def normalize_identifier(url, include_fragment = false)
-      OpenIdAuthentication.normalize_identifier(url, include_fragment)
+    def normalize_identifier(url)
+      OpenIdAuthentication.normalize_identifier(url)
     end
 
     # The parameter name of "openid_identifier" is used rather than the Rails convention "open_id_identifier"
@@ -156,12 +156,6 @@ module OpenIdAuthentication
       params_with_path.delete(:format)
       open_id_response = timeout_protection_from_identity_server { open_id_consumer.complete(params_with_path, requested_url) }
 
-      if open_id_response.identity_url
-        identity_url = normalize_identifier(open_id_response.identity_url, :include_fragment)
-      elsif open_id_response.display_identifier
-        identity_url = normalize_identifier(open_id_response.display_identifier, :include_fragment)
-      end
-
       case open_id_response.status
       when OpenID::Consumer::SUCCESS
         profile_data = {}
@@ -173,11 +167,11 @@ module OpenIdAuthentication
           end
         end
         
-        yield Result[:successful], identity_url, profile_data
+        yield Result[:successful], open_id_response.identity_url, profile_data
       when OpenID::Consumer::CANCEL
-        yield Result[:canceled], identity_url, nil
+        yield Result[:canceled], open_id_response.identity_url, nil
       when OpenID::Consumer::FAILURE
-        yield Result[:failed], identity_url, nil
+        yield Result[:failed], open_id_response.identity_url, nil
       when OpenID::Consumer::SETUP_NEEDED
         yield Result[:setup_needed], open_id_response.setup_url, nil
       end

@@ -78,12 +78,10 @@ module OpenIdAuthentication
     # clean up whitespace
     identifier = identifier.to_s.strip
 
-    # if an XRI has a prefix, strip it.
-    identifier.gsub!(/xri:\/\//i, '')
-
-    # dodge XRIs -- TODO: validate, don't just skip.
-    unless ['=', '@', '+', '$', '!', '('].include?(identifier.at(0))
-      # does it begin with http?  if not, add it.
+    case OpenID::Yadis::XRI.identifier_scheme(identifier)
+    when :xri
+      identifier.gsub!(/xri:\/\//i, '')
+    else
       identifier = "http://#{identifier}" unless identifier =~ /^http/i
 
       # strip any fragments
@@ -157,7 +155,6 @@ module OpenIdAuthentication
       params_with_path = params.reject { |key, value| request.path_parameters[key] }
       params_with_path.delete(:format)
       open_id_response = timeout_protection_from_identity_server { open_id_consumer.complete(params_with_path, requested_url) }
-      identity_url     = normalize_identifier(open_id_response.display_identifier) if open_id_response.display_identifier
 
       case open_id_response.status
       when OpenID::Consumer::SUCCESS
@@ -170,11 +167,11 @@ module OpenIdAuthentication
           end
         end
         
-        yield Result[:successful], identity_url, profile_data
+        yield Result[:successful], open_id_response.identity_url, profile_data
       when OpenID::Consumer::CANCEL
-        yield Result[:canceled], identity_url, nil
+        yield Result[:canceled], open_id_response.identity_url, nil
       when OpenID::Consumer::FAILURE
-        yield Result[:failed], identity_url, nil
+        yield Result[:failed], open_id_response.identity_url, nil
       when OpenID::Consumer::SETUP_NEEDED
         yield Result[:setup_needed], open_id_response.setup_url, nil
       end
@@ -224,7 +221,7 @@ module OpenIdAuthentication
       relative_url_root = self.class.respond_to?(:relative_url_root) ?
         self.class.relative_url_root.to_s :
         request.relative_url_root
-      "#{request.protocol}#{request.host_with_port}#{ActionController::Base.relative_url_root}#{request.path}"
+      "#{request.protocol}#{request.host_with_port}#{relative_url_root}#{request.path}"
     end
 
     def timeout_protection_from_identity_server

@@ -27,7 +27,7 @@ NAME = ENV["GEMNAME"] || "open_id_authentication"
 DESCRIPTION = "Provides a thin wrapper around the excellent ruby-openid gem from JanRan. gem version is unofficial, github fork of rails's by moro"
 AUTHOR = "David Heinemeier Hansson"
 EMAIL  = ""
-HOMEPAGE = "http//github.com/rails/open_id_authentication"
+HOMEPAGE = "http://github.com/rails/open_id_authentication"
 
 RDOC_OPTS = [
   '--title', "#{NAME} documentation",
@@ -43,7 +43,7 @@ spec = Gem::Specification.new do |s|
   s.version           = "1.0.0"
   s.platform          = Gem::Platform::RUBY
   s.has_rdoc          = true
-  s.extra_rdoc_files  = ["README", "CHANGElOG"]
+  s.extra_rdoc_files  = ["README", "CHANGELOG"]
   s.rdoc_options     += RDOC_OPTS + ['--exclude', '^(examples|extras)/']
   s.summary           = DESCRIPTION
   s.description       = DESCRIPTION
@@ -58,7 +58,7 @@ spec = Gem::Specification.new do |s|
   #s.add_dependency('activesupport', '>=1.3.1')
   #s.required_ruby_version = '>= 1.8.2'
 
-  s.files = %w(README CHANGElOG Rakefile) +
+  s.files = %w(README CHANGELOG Rakefile) +
     Dir.glob("{bin,doc,test,lib,templates,generators,extras,website,script}/**/*") +
     Dir.glob("ext/**/*.{h,c,rb}") +
     Dir.glob("examples/**/*.rb") +
